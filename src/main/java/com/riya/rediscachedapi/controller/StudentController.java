@@ -31,4 +31,8 @@ public class StudentController {
     public List<Student> getAllStudents(){
         return studentService.getAllStudents();
     }
+
+    public void deleteStudent(int id){
+        studentService.deleteStudent(id);
+    }
 }

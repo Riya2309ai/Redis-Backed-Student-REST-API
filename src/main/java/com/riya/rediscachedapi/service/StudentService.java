@@ -2,6 +2,9 @@ package com.riya.rediscachedapi.service;
 
 import com.riya.rediscachedapi.entity.Student;
 import com.riya.rediscachedapi.repository.StudentRepository;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -14,8 +17,11 @@ import java.util.Optional;
 public class StudentService {
 
     private final StudentRepository studentRepository;
-    public StudentService(StudentRepository studentRepository) {
+    private final CacheManager cacheManager;
+
+    public StudentService(StudentRepository studentRepository,  CacheManager cacheManager) {
         this.studentRepository = studentRepository;
+        this.cacheManager = cacheManager;
     }
 
     @Cacheable(value = "students", key = "#id")
@@ -23,11 +29,24 @@ public class StudentService {
        return studentRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student not found: " + id));
     }
 
+    @CachePut(value="students", key="#result.id")
     public void addStudent(Student student){
          studentRepository.save(student);
     }
+
     public List<Student> getAllStudents() {
         return studentRepository.findAll();
     }
 
+
+
+    public void deleteStudent(int id){
+        studentRepository.deleteById(id);
+
+        //use of CacheManager instead of @CacheEvict to manually control over cache in program
+        Cache cache = cacheManager.getCache("students");
+        if(cache != null) {
+            cache.evict(id);
+        }
+    }
 }
